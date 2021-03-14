@@ -1,0 +1,13 @@
+package com.jhallat.universaldatatools;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UniversalDataToolsApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(UniversalDataToolsApplication.class, args);
+    }
+
+}
