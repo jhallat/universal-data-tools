@@ -9,9 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +52,26 @@ public class ActiveConnectionService {
 
     public ActiveConnection getConnection(String connectionToken) {
         return activeConnectionMap.getOrDefault(connectionToken, new NullConnection());
+    }
+
+    public List<ActiveConnectionDTO> findAll() {
+
+        List<ActiveConnectionDTO> activeConnectionDTOS = new ArrayList<>();
+        for (Map.Entry<String, ActiveConnection> entry : activeConnectionMap.entrySet()) {
+            String token = entry.getKey();
+            String label = entry.getValue().getActiveConnectionType().name();
+            LocalDateTime lastUsed = Instant.ofEpochMilli(
+                    entry.getValue().getLastTimeUsed()).atZone(ZoneId.systemDefault()).toLocalDateTime();
+            activeConnectionDTOS.add(new ActiveConnectionDTO(token, label, lastUsed));
+        }
+        return Collections.unmodifiableList(activeConnectionDTOS);
+    }
+
+    public void removeAll() {
+        for (String token : activeConnectionMap.keySet()) {
+            ActiveConnection connection = activeConnectionMap.remove(token);
+            connection.close();
+        }
     }
 
 }

@@ -7,4 +7,9 @@ public class NullConnection extends ActiveConnection {
     public ConnectionLabel getActiveConnectionType() {
         return ConnectionLabel.NONE;
     }
+
+    @Override
+    public void close() {
+        //No implementation
+    }
 }
