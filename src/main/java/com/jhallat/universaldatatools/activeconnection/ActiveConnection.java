@@ -16,4 +16,6 @@ public abstract class ActiveConnection {
         return lastUsed;
     }
 
+    public abstract void close();
+
 }
