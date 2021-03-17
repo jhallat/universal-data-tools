@@ -72,6 +72,12 @@ public class DataSourceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedConnectionDefinition);
     }
 
+    @PutMapping("/disconnect/{token}")
+    ResponseEntity<Void> diconnect(@PathVariable String token) {
+        activeConnectionService.remove(token);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/connect/{id}")
     ResponseEntity<ConnectionToken> connect(@PathVariable int id) throws InvalidRequestException {
         Optional<ConnectionDefinition> connectionDefinitionFound = connectionRepository.findById(id);
