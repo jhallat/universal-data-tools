@@ -68,10 +68,16 @@ public class ActiveConnectionService {
     }
 
     public void removeAll() {
-        for (String token : activeConnectionMap.keySet()) {
+        List<String> tokens = List.copyOf(activeConnectionMap.keySet());
+        for (String token : tokens) {
             ActiveConnection connection = activeConnectionMap.remove(token);
             connection.close();
         }
     }
 
+    public void remove(String token) {
+        log.info("Removing token {}", token);
+        ActiveConnection connection = activeConnectionMap.remove(token);
+        connection.close();
+    }
 }
