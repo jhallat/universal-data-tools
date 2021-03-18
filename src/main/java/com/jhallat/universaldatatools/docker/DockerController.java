@@ -30,4 +30,32 @@ public class DockerController {
         }
     }
 
+    //TODO Maybe this should be a PUT?
+    @PostMapping("/container/start/{containerId}")
+    public ContainerDTO startDockerContainer(@RequestHeader("connection-token") String connectionToken,
+                                             @PathVariable("containerId") String containerId) throws InvalidRequestException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        try {
+            return dockerService.startContainer(connectionToken, containerId);
+        } catch (MissingConnectionException exception) {
+            throw new InvalidRequestException(exception.getMessage());
+        }
+    }
+
+    //TODO Maybe this should be a PUT?
+    @PostMapping("/container/stop/{containerId}")
+    public ContainerDTO stopDockerContainer(@RequestHeader("connection-token") String connectionToken,
+                                             @PathVariable("containerId") String containerId) throws InvalidRequestException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        try {
+            return dockerService.stopContainer(connectionToken, containerId);
+        } catch (MissingConnectionException exception) {
+            throw new InvalidRequestException(exception.getMessage());
+        }
+    }
+
 }

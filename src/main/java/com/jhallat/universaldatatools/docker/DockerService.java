@@ -4,18 +4,13 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
+import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,35 +19,52 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DockerService {
 
-    private static final DateTimeFormatter CREATED_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     private final ActiveConnectionService activeConnectionService;
+    private final DockerMapper dockerMapper;
 
-    public List<ContainerDTO> getContainers(String connectionToken) throws MissingConnectionException {
-        List<ContainerDTO> containerDTOS = new ArrayList<>();
+    private DockerClient findDockerClient(String connectionToken) throws MissingConnectionException {
         ActiveConnection activeConnection = activeConnectionService.getConnection(connectionToken);
-        if  (activeConnection instanceof DockerConnection connection) {
-            DockerClient client = connection.getDockerClient();
-            List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
-            for (Container container : containers) {
-                ContainerDTO containerDTO = new ContainerDTO();
-                containerDTO.setContainerId(container.getId());
-                containerDTO.setImage(container.getImage());
-                containerDTO.setCommand(container.getCommand());
-                LocalDateTime createdTime = Instant.ofEpochMilli(container.getCreated() * 1000).atZone(ZoneId.systemDefault()).toLocalDateTime();
-                containerDTO.setCreated(createdTime.format(CREATED_TIME_FORMAT));
-                containerDTO.setStatus(container.getStatus());
-                List<String> ports = Arrays.stream(container.getPorts())
-                        .map(port -> port.getPrivatePort() + " -> " + port.getPublicPort()).collect(Collectors.toList());
-                containerDTO.setPorts(StringUtils.join(ports, ", "));
-                containerDTO.setNames(StringUtils.join(container.getNames(), ", "));
-                containerDTOS.add(containerDTO);
-            }
-        } else {
-            log.warn("Expected DOCKER connection, found {}", activeConnection.getActiveConnectionType().name());
-            throw new MissingConnectionException("Connection missing or expired.");
+        if (activeConnection instanceof DockerConnection connection) {
+            return connection.getDockerClient();
         }
-        return containerDTOS;
+        log.warn("Expected DOCKER connection, found {}", activeConnection.getActiveConnectionType().name());
+        throw new MissingConnectionException("Connection missing or expired.");
     }
 
+    public List<ContainerDTO> getContainers(String connectionToken) throws MissingConnectionException {
+        DockerClient client = findDockerClient(connectionToken);
+        List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
+        return containers.stream()
+                .map(container -> dockerMapper.mapContainer(container))
+                .collect(Collectors.toList());
+
+    }
+
+    public ContainerDTO startContainer(String connectionToken, String containerId) throws MissingConnectionException,
+            InvalidRequestException {
+
+        DockerClient client = findDockerClient(connectionToken);
+        client.startContainerCmd(containerId).exec();
+        List<Container> containers =
+                client.listContainersCmd().withIdFilter(Collections.singletonList(containerId)).exec();
+        if (containers.isEmpty()) {
+            throw new InvalidRequestException(String.format("Container %s was not found", containerId));
+        }
+        return dockerMapper.mapContainer(containers.get(0));
+
+    }
+
+    public ContainerDTO stopContainer(String connectionToken, String containerId) throws MissingConnectionException,
+            InvalidRequestException {
+
+        DockerClient client = findDockerClient(connectionToken);
+        client.stopContainerCmd(containerId).exec();
+        List<Container> containers =
+                client.listContainersCmd().withShowAll(true).withIdFilter(Collections.singletonList(containerId)).exec();
+        if (containers.isEmpty()) {
+            throw new InvalidRequestException(String.format("Container %s was not found", containerId));
+        }
+        return dockerMapper.mapContainer(containers.get(0));
+
+    }
 }
