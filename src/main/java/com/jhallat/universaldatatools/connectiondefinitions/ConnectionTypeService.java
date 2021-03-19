@@ -1,5 +1,9 @@
 package com.jhallat.universaldatatools.connectiondefinitions;
 
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionProperty;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionType;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionTypeProperty;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.PropertyDefinition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +49,7 @@ public class ConnectionTypeService {
         if (connectionTypeCache == null) {
             loadCache();
         }
-        List<ConnectionType> connectionTypes = new ArrayList(connectionTypeCache.values());
+        List<ConnectionType> connectionTypes = new ArrayList<>(connectionTypeCache.values());
         connectionTypes.sort(Comparator.comparing(ConnectionType::getDescription));
         return connectionTypes;
     }

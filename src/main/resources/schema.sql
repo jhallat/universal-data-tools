@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS connection_types (
     id INT PRIMARY KEY,
     description varchar(250) NOT NULL,
     label varchar(30) NOT NULL,
-    factory varchar(50) NOT NULL
+    factory varchar(50) NOT NULL,
+    page varchar(25) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS connection_properties (

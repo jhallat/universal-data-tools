@@ -2,7 +2,7 @@ package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionLabel;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.io.IOException;
 @Slf4j
 public class DockerConnection extends ActiveConnection {
 
-    private DockerClient dockerClient;
+    private final DockerClient dockerClient;
 
     @Override
     public ConnectionLabel getActiveConnectionType() {

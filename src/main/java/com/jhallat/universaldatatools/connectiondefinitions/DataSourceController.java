@@ -1,6 +1,7 @@
 package com.jhallat.universaldatatools.connectiondefinitions;
 
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.*;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -21,9 +22,9 @@ public class DataSourceController {
     //TODO Simplify the logic by wrapping repositories in service classes
     private final ConnectionTypeService connectionTypeService;
     private final ConnectionRepository connectionRepository;
-    private final ConnectionPropertyRepository connectionPropertyRepository;
     private final ConnectionPropertyValueRepository connectionPropertyValueRepository;
     private final ActiveConnectionService activeConnectionService;
+    private final ConnectionTokenService connectionTokenService;
 
     @GetMapping("/types")
     ResponseEntity<List<ConnectionType>> getTypes() {
@@ -67,7 +68,7 @@ public class DataSourceController {
                 new ConnectionPropertyValue(savedConnectionDefinition.getId(),
                         propertyValue.getPropertyId(),
                         propertyValue.getValue()))
-                .forEach(value -> connectionPropertyValueRepository.save(value));
+                .forEach(connectionPropertyValueRepository::save);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedConnectionDefinition);
     }
@@ -79,41 +80,15 @@ public class DataSourceController {
     }
 
     @GetMapping("/connect/{id}")
-    ResponseEntity<ConnectionToken> connect(@PathVariable int id) throws InvalidRequestException {
-        Optional<ConnectionDefinition> connectionDefinitionFound = connectionRepository.findById(id);
-        if (connectionDefinitionFound.isEmpty()) {
-            return ResponseEntity.ok(new ConnectionToken("",
-                    ConnectionLabel.NONE, "", false, new HashMap<String, String>()));
-        }
-        ConnectionDefinition connectionDefinition = connectionDefinitionFound.get();
-        Optional<ConnectionType> connectionTypeFound = connectionTypeService.findById(connectionDefinition.getTypeId());
-        if (connectionTypeFound.isEmpty()) {
-            throw new InvalidRequestException(
-                    String.format("Invalid connection type id [%s]", connectionDefinition.getTypeId() ));
-        }
-        ConnectionToken connectionToken = new ConnectionToken(UUID.randomUUID().toString(),
-                connectionTypeFound.get().getLabel(),
-                connectionDefinition.getDescription(),
-                true,
-                createPropertyMap(connectionDefinition.getId()));
+    ConnectionToken connect(@PathVariable int id) {
+        ConnectionToken connectionToken = connectionTokenService.createToken(id);
         //TODO Throw an error if unable to connect
-        activeConnectionService.connect(connectionToken);
-        return ResponseEntity.ok(connectionToken);
-    }
-
-    private Map<String, String> createPropertyMap(int connectionId) {
-        Map<String, String> propertyMap = new HashMap<>();
-
-        List<ConnectionPropertyValue> connectionPropertyValues =
-                connectionPropertyValueRepository.findByConnectionId(connectionId);
-        for (ConnectionPropertyValue value : connectionPropertyValues) {
-            Optional<ConnectionProperty> propertyFound = connectionPropertyRepository.findById(value.getPropertyId());
-            if (propertyFound.isPresent()) {
-                //TODO Replace the property description with an enumeration
-                propertyMap.put(propertyFound.get().getDescription(), value.getValue());
-            }
+        if (activeConnectionService.connect(connectionToken)) {
+            return connectionToken;
+        } else {
+            return new InvalidConnectionToken("Unable to connect to data source");
         }
-
-        return propertyMap;
     }
+
+
 }

@@ -1,6 +1,6 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionToken;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionToken;
 
 public interface ActiveConnectionFactory {
 

@@ -1,4 +1,6 @@
-package com.jhallat.universaldatatools.connectiondefinitions;
+package com.jhallat.universaldatatools.connectiondefinitions.entities;
+
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;

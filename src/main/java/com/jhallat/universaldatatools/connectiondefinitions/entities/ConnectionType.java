@@ -1,4 +1,4 @@
-package com.jhallat.universaldatatools.connectiondefinitions;
+package com.jhallat.universaldatatools.connectiondefinitions.entities;
 
 import lombok.AccessLevel;
 import lombok.Data;
@@ -23,11 +23,14 @@ public class ConnectionType {
     private String description;
 
     @Column(name="LABEL")
-    @Convert(converter=ConnectionLabelConverter.class)
+    @Convert(converter= ConnectionLabelConverter.class)
     private ConnectionLabel label;
 
     @Column(name="FACTORY")
     private String factory;
+
+    @Column(name="PAGE")
+    private String page;
 
     @Transient
     @Setter(AccessLevel.NONE)
