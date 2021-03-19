@@ -1,4 +1,4 @@
-package com.jhallat.universaldatatools.connectiondefinitions;
+package com.jhallat.universaldatatools.connectiondefinitions.entities;
 
 import lombok.*;
 
@@ -9,7 +9,9 @@ import java.util.Map;
 public class ConnectionToken {
 
     private String token;
+    private String type;
     private ConnectionLabel label;
+    private String page;
     private String description;
     private boolean valid;
     @Getter(AccessLevel.NONE)

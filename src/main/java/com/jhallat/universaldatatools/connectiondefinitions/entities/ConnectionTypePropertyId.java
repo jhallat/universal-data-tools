@@ -1,4 +1,4 @@
-package com.jhallat.universaldatatools.connectiondefinitions;
+package com.jhallat.universaldatatools.connectiondefinitions.entities;
 
 
 import lombok.AllArgsConstructor;

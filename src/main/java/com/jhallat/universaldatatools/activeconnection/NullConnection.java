@@ -1,6 +1,6 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionLabel;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
 
 public class NullConnection extends ActiveConnection {
     @Override

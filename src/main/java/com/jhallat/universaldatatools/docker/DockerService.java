@@ -35,7 +35,7 @@ public class DockerService {
         DockerClient client = findDockerClient(connectionToken);
         List<Container> containers = client.listContainersCmd().withShowAll(true).exec();
         return containers.stream()
-                .map(container -> dockerMapper.mapContainer(container))
+                .map(dockerMapper::mapContainer)
                 .collect(Collectors.toList());
 
     }

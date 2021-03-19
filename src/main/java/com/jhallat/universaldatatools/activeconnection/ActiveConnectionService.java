@@ -1,8 +1,8 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionLabel;
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionToken;
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionType;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionToken;
+import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionType;
 import com.jhallat.universaldatatools.connectiondefinitions.ConnectionTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +22,8 @@ public class ActiveConnectionService {
     private final ConnectionTypeRepository connectionTypeRepository;
     private final ApplicationContext applicationContext;
 
-    private Map<ConnectionLabel, ActiveConnectionFactory> factoryMap = new HashMap<>();
-    private Map<String, ActiveConnection> activeConnectionMap = new HashMap<>();
+    private final Map<ConnectionLabel, ActiveConnectionFactory> factoryMap = new HashMap<>();
+    private final Map<String, ActiveConnection> activeConnectionMap = new HashMap<>();
 
     private void initializeFactoryMap() {
         List<ConnectionType> connectionTypes = connectionTypeRepository.findAll();
@@ -39,15 +39,18 @@ public class ActiveConnectionService {
     }
 
     //TODO Should this method create the connection token?
-    public void connect(ConnectionToken token) {
+    public boolean connect(ConnectionToken token) {
         if (factoryMap.isEmpty()) {
             initializeFactoryMap();
         }
-        //TODO handle missing factory
         ActiveConnectionFactory factory = factoryMap.get(token.getLabel());
+        if (factory == null) {
+            return false;
+        }
         ActiveConnection connection = factory.createConnection(token);
         log.info("Adding token {} to active connection map", token.getToken());
         activeConnectionMap.put(token.getToken(), connection);
+        return true;
     }
 
     public ActiveConnection getConnection(String connectionToken) {
