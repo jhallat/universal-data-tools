@@ -1,9 +1,8 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
+import com.jhallat.universaldatatools.connectiondefinitions.ConnectionTypeService;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionToken;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionType;
-import com.jhallat.universaldatatools.connectiondefinitions.ConnectionTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -19,14 +18,14 @@ import java.util.*;
 @Slf4j
 public class ActiveConnectionService {
 
-    private final ConnectionTypeRepository connectionTypeRepository;
+    private final ConnectionTypeService connectionTypeService;
     private final ApplicationContext applicationContext;
 
-    private final Map<ConnectionLabel, ActiveConnectionFactory> factoryMap = new HashMap<>();
+    private final Map<String, ActiveConnectionFactory> factoryMap = new HashMap<>();
     private final Map<String, ActiveConnection> activeConnectionMap = new HashMap<>();
 
     private void initializeFactoryMap() {
-        List<ConnectionType> connectionTypes = connectionTypeRepository.findAll();
+        List<ConnectionType> connectionTypes = connectionTypeService.findAll();
         for (ConnectionType connectionType : connectionTypes) {
             if (applicationContext.containsBeanDefinition(connectionType.getFactory())) {
                 ActiveConnectionFactory factory = applicationContext.getBean(connectionType.getFactory(),
@@ -62,7 +61,7 @@ public class ActiveConnectionService {
         List<ActiveConnectionDTO> activeConnectionDTOS = new ArrayList<>();
         for (Map.Entry<String, ActiveConnection> entry : activeConnectionMap.entrySet()) {
             String token = entry.getKey();
-            String label = entry.getValue().getActiveConnectionType().name();
+            String label = entry.getValue().getLabel();
             LocalDateTime lastUsed = Instant.ofEpochMilli(
                     entry.getValue().getLastTimeUsed()).atZone(ZoneId.systemDefault()).toLocalDateTime();
             activeConnectionDTOS.add(new ActiveConnectionDTO(token, label, lastUsed));

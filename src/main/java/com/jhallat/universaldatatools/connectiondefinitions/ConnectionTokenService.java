@@ -27,7 +27,7 @@ public class ConnectionTokenService {
             return new InvalidConnectionToken("Connection not found or expired");
         }
         ConnectionDefinition connectionDefinition = connectionDefinitionFound.get();
-        Optional<ConnectionType> connectionTypeFound = connectionTypeService.findById(connectionDefinition.getTypeId());
+        Optional<ConnectionType> connectionTypeFound = connectionTypeService.findById(connectionDefinition.getTypeLabel());
         if (connectionTypeFound.isEmpty()) {
             return new InvalidConnectionToken("Connection type is not valid");
         }

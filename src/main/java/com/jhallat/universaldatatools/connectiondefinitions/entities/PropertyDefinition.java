@@ -7,7 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class PropertyDefinition {
 
-    private int propertyId;
+    private int id;
     private String description;
     private boolean required;
     private boolean masked;

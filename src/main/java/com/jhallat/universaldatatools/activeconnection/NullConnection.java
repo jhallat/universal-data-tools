@@ -1,11 +1,10 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
-
 public class NullConnection extends ActiveConnection {
+
     @Override
-    public ConnectionLabel getActiveConnectionType() {
-        return ConnectionLabel.NONE;
+    public String getLabel() {
+        return "NONE";
     }
 
     @Override

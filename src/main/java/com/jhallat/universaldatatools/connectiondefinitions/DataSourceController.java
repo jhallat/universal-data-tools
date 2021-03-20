@@ -40,10 +40,10 @@ public class DataSourceController {
     ResponseEntity<ConnectionDefinition> createConnection(
             @RequestBody @Valid ConnectionDefinition connectionDefinition) throws InvalidRequestException {
         Optional<ConnectionType> connectionTypeFound =
-                connectionTypeService.findById(connectionDefinition.getTypeId());
+                connectionTypeService.findById(connectionDefinition.getTypeLabel());
         if (connectionTypeFound.isEmpty()) {
             throw new InvalidRequestException(
-                    String.format("Invalid connection type id [%s]", connectionDefinition.getTypeId() ));
+                    String.format("Invalid connection type label [%s]", connectionDefinition.getTypeLabel() ));
         }
         if (StringUtils.isBlank(connectionDefinition.getDescription())) {
             String connectionType = connectionTypeFound.get().getDescription();

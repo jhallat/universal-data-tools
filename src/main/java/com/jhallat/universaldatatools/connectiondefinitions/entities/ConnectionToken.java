@@ -10,7 +10,7 @@ public class ConnectionToken {
 
     private String token;
     private String type;
-    private ConnectionLabel label;
+    private String label;
     private String page;
     private String description;
     private boolean valid;

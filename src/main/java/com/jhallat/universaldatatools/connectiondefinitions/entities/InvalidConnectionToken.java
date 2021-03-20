@@ -5,7 +5,8 @@ import java.util.HashMap;
 public class InvalidConnectionToken extends ConnectionToken {
 
     public InvalidConnectionToken(String invalidDescription) {
-        super("", "Invalid", ConnectionLabel.NONE, "invalid", invalidDescription, false, new HashMap<>());
+        //TODO Replace "NONE" with a constant
+        super("", "Invalid", "NONE", "invalid", invalidDescription, false, new HashMap<>());
     }
 
 }
