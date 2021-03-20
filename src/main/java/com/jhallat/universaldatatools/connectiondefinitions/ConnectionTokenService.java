@@ -5,14 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ConnectionTokenService {
 
+    //TODO Create a connection service that links the properties to connection of use a join on entity
     private final ConnectionRepository connectionRepository;
     private final ConnectionTypeService connectionTypeService;
-    private final ConnectionPropertyRepository connectionPropertyRepository;
     private final ConnectionPropertyValueRepository connectionPropertyValueRepository;
 
     /**
@@ -32,26 +33,16 @@ public class ConnectionTokenService {
             return new InvalidConnectionToken("Connection type is not valid");
         }
         ConnectionType connectionType = connectionTypeFound.get();
+        List<ConnectionPropertyValue> propertyValues = connectionPropertyValueRepository.findByConnectionId(id);
         return new ConnectionToken(UUID.randomUUID().toString(),
                 connectionType.getDescription(),
                 connectionType.getLabel(),
                 connectionType.getPage(),
                 connectionDefinition.getDescription(),
                 true,
-                createPropertyMap(connectionDefinition.getId()));
+                propertyValues.stream()
+                        .collect(Collectors.toMap(ConnectionPropertyValue::getPropertyId, ConnectionPropertyValue::getValue)));
     }
 
-    private Map<String, String> createPropertyMap(int connectionId) {
-        Map<String, String> propertyMap = new HashMap<>();
 
-        List<ConnectionPropertyValue> connectionPropertyValues =
-                connectionPropertyValueRepository.findByConnectionId(connectionId);
-        for (ConnectionPropertyValue value : connectionPropertyValues) {
-            Optional<ConnectionProperty> propertyFound = connectionPropertyRepository.findById(value.getPropertyId());
-            //TODO Replace the property description with an enumeration
-            propertyFound.ifPresent(connectionProperty -> propertyMap.put(connectionProperty.getDescription(), value.getValue()));
-        }
-
-        return propertyMap;
-    }
 }
