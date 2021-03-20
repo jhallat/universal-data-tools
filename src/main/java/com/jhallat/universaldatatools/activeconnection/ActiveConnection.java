@@ -1,12 +1,10 @@
 package com.jhallat.universaldatatools.activeconnection;
 
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
-
 public abstract class ActiveConnection {
 
     private long lastUsed;
 
-    public abstract ConnectionLabel getActiveConnectionType();
+    public abstract String getLabel();
 
     public void markAsUsed() {
         lastUsed = System.currentTimeMillis();

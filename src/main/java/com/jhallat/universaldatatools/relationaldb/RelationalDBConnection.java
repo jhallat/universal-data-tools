@@ -1,7 +1,6 @@
 package com.jhallat.universaldatatools.relationaldb;
 
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionLabel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,11 +11,11 @@ import java.sql.SQLException;
 @Slf4j
 public class RelationalDBConnection extends ActiveConnection {
 
+    private final String label;
     private final Connection connection;
-    private final ConnectionLabel label;
 
     @Override
-    public ConnectionLabel getActiveConnectionType() {
+    public String getLabel() {
         return label;
     }
 

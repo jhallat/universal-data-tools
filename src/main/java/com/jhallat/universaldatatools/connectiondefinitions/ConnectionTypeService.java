@@ -1,47 +1,28 @@
 package com.jhallat.universaldatatools.connectiondefinitions;
 
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionProperty;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionType;
-import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionTypeProperty;
-import com.jhallat.universaldatatools.connectiondefinitions.entities.PropertyDefinition;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ConnectionTypeService {
 
-    private final ConnectionTypeRepository connectionTypeRepository;
-    private final ConnectionPropertyRepository connectionPropertyRepository;
-    private final ConnectionTypePropertyRepository connectionTypePropertyRepository;
+    private final ApplicationContext applicationContext;
 
-    private Map<Integer, ConnectionType> connectionTypeCache;
+    private Map<String, ConnectionType> connectionTypeCache;
 
     private void loadCache() {
         connectionTypeCache = new HashMap<>();
-        List<ConnectionType> connectionTypes = connectionTypeRepository.findAll();
-        List<ConnectionProperty> connectionProperties = connectionPropertyRepository.findAll();
-        List<ConnectionTypeProperty> connectionTypeProperties = connectionTypePropertyRepository.findAll();
-        Map<Integer, ConnectionProperty> connectionPropertyMap =
-                connectionProperties.stream()
-                .collect(Collectors.toMap(ConnectionProperty::getId, connProperty -> connProperty));
-        Map<Integer, List<ConnectionTypeProperty>> connectionTypePropertyMap =
-                connectionTypeProperties.stream()
-                .collect(Collectors.groupingBy(ConnectionTypeProperty::getTypeId));
-        for (ConnectionType connectionType : connectionTypes) {
-            List<ConnectionTypeProperty> typeProperties = connectionTypePropertyMap.get(connectionType.getId());
-            for (ConnectionTypeProperty typeProperty : typeProperties) {
-                ConnectionProperty property = connectionPropertyMap.get(typeProperty.getPropertyId());
-                connectionType.addPropertyDefinition(
-                        new PropertyDefinition(property.getId(),
-                                property.getDescription(),
-                                typeProperty.getRequired() > 0,
-                                 property.getMasked() > 0));
+        String[] beanNames = applicationContext.getBeanNamesForType(ConnectionTypeProvider.class);
+        for (String beanName : beanNames) {
+            ConnectionTypeProvider provider = applicationContext.getBean(beanName, ConnectionTypeProvider.class);
+            for (ConnectionType connection : provider.getTypes()) {
+                connectionTypeCache.put(connection.getLabel(), connection);
             }
-            connectionTypeCache.put(connectionType.getId(), connectionType);
         }
     }
 
@@ -54,12 +35,12 @@ public class ConnectionTypeService {
         return connectionTypes;
     }
 
-    public Optional<ConnectionType> findById(int id) {
+    public Optional<ConnectionType> findById(String typeLabel) {
         if (connectionTypeCache == null) {
             loadCache();
         }
-        if (connectionTypeCache.containsKey(id)) {
-            return Optional.of(connectionTypeCache.get(id));
+        if (connectionTypeCache.containsKey(typeLabel)) {
+            return Optional.of(connectionTypeCache.get(typeLabel));
         }
         return Optional.empty();
     }

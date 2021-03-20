@@ -16,9 +16,9 @@ public class ConnectionDefinition {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name="TYPE_ID")
+    @Column(name="TYPE_LABEL")
     @NotBlank
-    private int typeId;
+    private String typeLabel;
 
     @Column(name="DESCRIPTION")
     private String description;
