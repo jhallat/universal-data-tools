@@ -16,13 +16,13 @@ public class ConnectionToken {
     private boolean valid;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private Map<String, String> propertyMap;
+    private Map<Integer, String> propertyMap;
 
-    public void getProperty(String property) {
+    public void getProperty(int property) {
         propertyMap.getOrDefault(property, "");
     }
 
-    public void setProperty(String property, String value) {
+    public void setProperty(int property, String value) {
         propertyMap.put(property, value);
     }
 }
