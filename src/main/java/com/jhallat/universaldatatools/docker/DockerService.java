@@ -2,6 +2,7 @@ package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
+import com.github.dockerjava.api.model.SearchItem;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
@@ -65,6 +66,15 @@ public class DockerService {
             throw new InvalidRequestException(String.format("Container %s was not found", containerId));
         }
         return dockerMapper.mapContainer(containers.get(0));
+    }
+
+    public List<SearchItemDTO> searchImages(String connectionToken, String imageName) throws MissingConnectionException {
+
+        DockerClient client = findDockerClient(connectionToken);
+        List<SearchItem> images = client.searchImagesCmd(imageName).exec();
+        return images.stream()
+                .map(dockerMapper::mapSearchItem)
+                .collect(Collectors.toList());
 
     }
 }

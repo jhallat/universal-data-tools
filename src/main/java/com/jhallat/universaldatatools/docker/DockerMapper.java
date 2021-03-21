@@ -1,6 +1,7 @@
 package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.model.Container;
+import com.github.dockerjava.api.model.SearchItem;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -32,4 +33,12 @@ public class DockerMapper {
         return containerDTO;
     }
 
+    public SearchItemDTO mapSearchItem(SearchItem searchItem) {
+        SearchItemDTO searchItemDTO = new SearchItemDTO();
+        searchItemDTO.setDescription(searchItem.getDescription());
+        searchItemDTO.setName(searchItem.getName());
+        searchItemDTO.setOfficial(searchItem.isOfficial());
+        searchItemDTO.setStars(searchItem.getStarCount());
+        return searchItemDTO;
+    }
 }

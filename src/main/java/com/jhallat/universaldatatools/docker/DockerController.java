@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.ws.rs.Path;
 import java.util.List;
 
 @RestController
@@ -43,15 +44,23 @@ public class DockerController {
     //TODO Maybe this should be a PUT?
     @PostMapping("/container/stop/{containerId}")
     public ContainerDTO stopDockerContainer(@RequestHeader("connection-token") String connectionToken,
-                                             @PathVariable("containerId") String containerId) throws InvalidRequestException {
+                                             @PathVariable("containerId") String containerId)
+            throws InvalidRequestException, MissingConnectionException {
         if (connectionToken == null) {
             throw new InvalidRequestException("Missing connection token");
         }
-        try {
-            return dockerService.stopContainer(connectionToken, containerId);
-        } catch (MissingConnectionException exception) {
-            throw new InvalidRequestException(exception.getMessage());
+        return dockerService.stopContainer(connectionToken, containerId);
+    }
+
+    @GetMapping("/images/search/{search}")
+    public List<SearchItemDTO> findImages(@RequestHeader("connection-token") String connectionToken,
+                                          @PathVariable String search)
+            throws InvalidRequestException, MissingConnectionException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
         }
+        return dockerService.searchImages(connectionToken, search);
+
     }
 
 }
