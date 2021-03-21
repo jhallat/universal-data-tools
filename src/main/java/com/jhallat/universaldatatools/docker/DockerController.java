@@ -18,16 +18,12 @@ public class DockerController {
 
     @GetMapping("/containers")
     public ResponseEntity<List<ContainerDTO>> getDockerContainers(
-            @RequestHeader("connection-token") String connectionToken) throws InvalidRequestException {
+            @RequestHeader("connection-token") String connectionToken) throws MissingConnectionException, InvalidRequestException {
         if (connectionToken == null) {
             throw new InvalidRequestException("Missing connection token");
         }
-        try {
-            List<ContainerDTO> containerDTOS = dockerService.getContainers(connectionToken);
-            return ResponseEntity.ok(containerDTOS);
-        } catch (MissingConnectionException exception) {
-            throw new InvalidRequestException(exception.getMessage());
-        }
+        List<ContainerDTO> containerDTOS = dockerService.getContainers(connectionToken);
+        return ResponseEntity.ok(containerDTOS);
     }
 
     //TODO Maybe this should be a PUT?

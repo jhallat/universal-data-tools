@@ -1,8 +1,10 @@
 package com.jhallat.universaldatatools.exceptions;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -10,7 +12,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@ControllerAdvice
 public class ControllerExceptionHandler {
+
+    public static final String EX_PREFIX_MISSING_CONNECTION = "NOCONN";
 
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -25,7 +30,16 @@ public class ControllerExceptionHandler {
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(InvalidRequestException.class)
-    String handleAlreadyExistsException(InvalidRequestException exception) {
+    String handleInvalidRequestException(InvalidRequestException exception) {
         return exception.getMessage();
     }
+
+    @ExceptionHandler(MissingConnectionException.class)
+    ResponseEntity<ErrorResponse> handleMissingConnectionException(MissingConnectionException exception) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(EX_PREFIX_MISSING_CONNECTION, exception.getMessage()));
+
+    }
+
 }

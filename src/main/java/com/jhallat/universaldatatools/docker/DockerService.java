@@ -27,8 +27,8 @@ public class DockerService {
         if (activeConnection instanceof DockerConnection connection) {
             return connection.getDockerClient();
         }
-        log.warn("Expected DOCKER connection, found {}", activeConnection.getLabel());
-        throw new MissingConnectionException("Connection missing or expired.");
+        log.warn("Expected DOCKER connection, found {} for token {}", activeConnection.getLabel(), connectionToken);
+        throw new MissingConnectionException();
     }
 
     public List<ContainerDTO> getContainers(String connectionToken) throws MissingConnectionException {

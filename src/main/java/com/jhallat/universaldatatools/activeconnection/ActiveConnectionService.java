@@ -47,7 +47,7 @@ public class ActiveConnectionService {
             return false;
         }
         ActiveConnection connection = factory.createConnection(token);
-        log.info("Adding token {} to active connection map", token.getToken());
+        log.info("Adding connection {} for token {} to active connection map", connection.getLabel(), token.getToken());
         activeConnectionMap.put(token.getToken(), connection);
         return true;
     }
