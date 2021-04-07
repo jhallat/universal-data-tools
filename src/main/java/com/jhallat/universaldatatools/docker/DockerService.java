@@ -1,16 +1,17 @@
 package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.SearchItem;
+import com.github.dockerjava.api.model.*;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -68,13 +69,50 @@ public class DockerService {
         return dockerMapper.mapContainer(containers.get(0));
     }
 
-    public List<SearchItemDTO> searchImages(String connectionToken, String imageName) throws MissingConnectionException {
+    public List<SearchItemDTO> searchImages(String connectionToken,
+                                            String imageName,
+                                            Boolean officialOnly,
+                                            Integer minimumRating) throws MissingConnectionException {
 
         DockerClient client = findDockerClient(connectionToken);
         List<SearchItem> images = client.searchImagesCmd(imageName).exec();
-        return images.stream()
+        List<SearchItemDTO> dtos = images.stream()
                 .map(dockerMapper::mapSearchItem)
                 .collect(Collectors.toList());
+        if (officialOnly != null && officialOnly) {
+            dtos = dtos.stream().filter(item -> item.isOfficial()).collect(Collectors.toList());
+        }
+        if (minimumRating != null && minimumRating > 0) {
+            dtos = dtos.stream().filter(item -> item.getStars() >= minimumRating).collect(Collectors.toList());
+        }
+        return dtos;
+    }
 
+    public ContainerDTO createContainer(String connectionToken, ContainerCreationDefinition definition)
+            throws MissingConnectionException, InvalidRequestException {
+        DockerClient client = findDockerClient(connectionToken);
+        var command = client.createContainerCmd(definition.getImage());
+        if (!StringUtils.isBlank(definition.getName())) {
+            command.withName(definition.getName());
+        }
+        var hostConfig = HostConfig.newHostConfig();
+        List<PortBinding> portBindings = new ArrayList<>()
+;        for (PublishedPort port : definition.publishedPorts) {
+            if (!StringUtils.isBlank(port.getMapping())) {
+                portBindings.add(PortBinding.parse(port.getMapping()));
+            }
+        }
+        if (!portBindings.isEmpty()) {
+            hostConfig.withPortBindings(portBindings);
+        }
+        command.withHostConfig(hostConfig);
+
+        var response = command.exec();
+        List<Container> containers =
+                client.listContainersCmd().withIdFilter(Collections.singletonList(response.getId())).exec();
+        if (containers.isEmpty()) {
+            throw new InvalidRequestException(String.format("Container %s was not found", response.getId()));
+        }
+        return dockerMapper.mapContainer(containers.get(0));
     }
 }
