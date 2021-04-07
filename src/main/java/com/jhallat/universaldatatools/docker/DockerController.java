@@ -78,6 +78,14 @@ public class DockerController {
     public ContainerDTO createContainer(@RequestHeader("connection-token") String connectionToken,
                                         @RequestBody @Valid ContainerCreationDefinition definition)
             throws MissingConnectionException, InvalidRequestException {
-        return this.dockerService.createContainer(connectionToken, definition);
+        return dockerService.createContainer(connectionToken, definition);
+    }
+
+    @DeleteMapping("/container/{containerId}")
+    public ResponseEntity<Void> deleteContainer(@RequestHeader("connection-token") String connectionToken,
+                                                @PathVariable("containerId") String containerId)
+            throws MissingConnectionException {
+        dockerService.deleteContainer(connectionToken, containerId);
+        return ResponseEntity.noContent().build();
     }
 }

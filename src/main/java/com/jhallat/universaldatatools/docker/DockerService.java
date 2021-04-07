@@ -115,4 +115,9 @@ public class DockerService {
         }
         return dockerMapper.mapContainer(containers.get(0));
     }
+
+    public void deleteContainer(String connectionToken, String containerId) throws MissingConnectionException {
+        DockerClient client = findDockerClient(connectionToken);
+        client.removeContainerCmd(containerId).exec();
+    }
 }
