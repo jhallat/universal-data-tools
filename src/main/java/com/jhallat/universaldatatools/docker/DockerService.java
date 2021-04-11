@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.logging.log4j.util.Strings.isBlank;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -96,16 +98,27 @@ public class DockerService {
             command.withName(definition.getName());
         }
         var hostConfig = HostConfig.newHostConfig();
-        List<PortBinding> portBindings = new ArrayList<>()
-;        for (PublishedPort port : definition.publishedPorts) {
-            if (!StringUtils.isBlank(port.getMapping())) {
-                portBindings.add(PortBinding.parse(port.getMapping()));
-            }
-        }
+        var portBindings = definition.getPublishedPorts().stream()
+            .filter(port -> !StringUtils.isBlank(port.getMapping()))
+            .map(port -> PortBinding.parse(port.getMapping()))
+            .collect(Collectors.toList());
         if (!portBindings.isEmpty()) {
             hostConfig.withPortBindings(portBindings);
         }
+        var volumes = definition.getVolumes().stream()
+                .filter(volume -> !StringUtils.isBlank(volume.getMapping()))
+                .map(volume -> Bind.parse(volume.getMapping()))
+                .collect(Collectors.toList());
+        if (!volumes.isEmpty()) {
+            hostConfig.withBinds(volumes);
+        }
         command.withHostConfig(hostConfig);
+        var environmentVariables = definition.getEnvironmentVariables().stream()
+                .filter(variable -> !isBlank(variable.getName()) && !isBlank(variable.getValue()))
+                .map(variable -> String.format("%s=%s", variable.getName(), variable.getValue()))
+                .peek(variable -> log.info("Environment Variable: {}", variable))
+                .collect(Collectors.toList());
+        command.withEnv(environmentVariables);
 
         var response = command.exec();
         List<Container> containers =

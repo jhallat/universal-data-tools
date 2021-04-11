@@ -11,4 +11,6 @@ public class ContainerCreationDefinition {
     private String image;
     private String name;
     List<PublishedPort> publishedPorts;
+    List<Volume> volumes;
+    List<EnvironmentVariable> environmentVariables;
 }
