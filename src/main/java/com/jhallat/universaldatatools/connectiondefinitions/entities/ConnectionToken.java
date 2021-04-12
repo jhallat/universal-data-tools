@@ -18,8 +18,8 @@ public class ConnectionToken {
     @Setter(AccessLevel.NONE)
     private Map<Integer, String> propertyMap;
 
-    public void getProperty(int property) {
-        propertyMap.getOrDefault(property, "");
+    public String getProperty(int property) {
+        return propertyMap.getOrDefault(property, "");
     }
 
     public void setProperty(int property, String value) {

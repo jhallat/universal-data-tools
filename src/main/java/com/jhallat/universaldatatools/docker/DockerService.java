@@ -4,6 +4,7 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.*;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
+import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class DockerService {
 
     private final ActiveConnectionService activeConnectionService;
     private final DockerMapper dockerMapper;
+    private final ConnectionLogService connectionLogService;
 
     private DockerClient findDockerClient(String connectionToken) throws MissingConnectionException {
         ActiveConnection activeConnection = activeConnectionService.getConnection(connectionToken);
@@ -48,7 +50,11 @@ public class DockerService {
             InvalidRequestException {
 
         DockerClient client = findDockerClient(connectionToken);
-        client.startContainerCmd(containerId).exec();
+        try {
+            client.startContainerCmd(containerId).exec();
+        } catch (Exception exception) {
+            connectionLogService.error("Docker", exception.getMessage());
+        }
         List<Container> containers =
                 client.listContainersCmd().withIdFilter(Collections.singletonList(containerId)).exec();
         if (containers.isEmpty()) {
@@ -62,7 +68,11 @@ public class DockerService {
             InvalidRequestException {
 
         DockerClient client = findDockerClient(connectionToken);
-        client.stopContainerCmd(containerId).exec();
+        try {
+            client.stopContainerCmd(containerId).exec();
+        } catch (Exception exception) {
+            connectionLogService.error("Docker", exception.getMessage());
+        }
         List<Container> containers =
                 client.listContainersCmd().withShowAll(true).withIdFilter(Collections.singletonList(containerId)).exec();
         if (containers.isEmpty()) {
@@ -77,17 +87,22 @@ public class DockerService {
                                             Integer minimumRating) throws MissingConnectionException {
 
         DockerClient client = findDockerClient(connectionToken);
-        List<SearchItem> images = client.searchImagesCmd(imageName).exec();
-        List<SearchItemDTO> dtos = images.stream()
-                .map(dockerMapper::mapSearchItem)
-                .collect(Collectors.toList());
-        if (officialOnly != null && officialOnly) {
-            dtos = dtos.stream().filter(item -> item.isOfficial()).collect(Collectors.toList());
+        try {
+            List<SearchItem> images = client.searchImagesCmd(imageName).exec();
+            List<SearchItemDTO> dtos = images.stream()
+                    .map(dockerMapper::mapSearchItem)
+                    .collect(Collectors.toList());
+            if (officialOnly != null && officialOnly) {
+                dtos = dtos.stream().filter(item -> item.isOfficial()).collect(Collectors.toList());
+            }
+            if (minimumRating != null && minimumRating > 0) {
+                dtos = dtos.stream().filter(item -> item.getStars() >= minimumRating).collect(Collectors.toList());
+            }
+            return dtos;
+        } catch (Exception exception) {
+            connectionLogService.error("Docker", exception.getMessage());
         }
-        if (minimumRating != null && minimumRating > 0) {
-            dtos = dtos.stream().filter(item -> item.getStars() >= minimumRating).collect(Collectors.toList());
-        }
-        return dtos;
+        return Collections.emptyList();
     }
 
     public ContainerDTO createContainer(String connectionToken, ContainerCreationDefinition definition)
@@ -120,17 +135,26 @@ public class DockerService {
                 .collect(Collectors.toList());
         command.withEnv(environmentVariables);
 
-        var response = command.exec();
-        List<Container> containers =
-                client.listContainersCmd().withIdFilter(Collections.singletonList(response.getId())).exec();
-        if (containers.isEmpty()) {
-            throw new InvalidRequestException(String.format("Container %s was not found", response.getId()));
+        try {
+            var response = command.exec();
+            List<Container> containers =
+                    client.listContainersCmd().withIdFilter(Collections.singletonList(response.getId())).exec();
+            if (containers.isEmpty()) {
+                throw new InvalidRequestException(String.format("Container %s was not found", response.getId()));
+            }
+            return dockerMapper.mapContainer(containers.get(0));
+        } catch (Exception exception) {
+            connectionLogService.error("Docker", exception.getMessage());
         }
-        return dockerMapper.mapContainer(containers.get(0));
+        return null;
     }
 
     public void deleteContainer(String connectionToken, String containerId) throws MissingConnectionException {
         DockerClient client = findDockerClient(connectionToken);
-        client.removeContainerCmd(containerId).exec();
+        try {
+            client.removeContainerCmd(containerId).exec();
+        } catch (Exception exception) {
+            connectionLogService.error("Docker", exception.getMessage());
+        }
     }
 }

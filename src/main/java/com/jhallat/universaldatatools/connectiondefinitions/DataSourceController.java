@@ -2,6 +2,7 @@ package com.jhallat.universaldatatools.connectiondefinitions;
 
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.*;
+import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +26,7 @@ public class DataSourceController {
     private final ConnectionPropertyValueRepository connectionPropertyValueRepository;
     private final ActiveConnectionService activeConnectionService;
     private final ConnectionTokenService connectionTokenService;
+    private final ConnectionLogService connectionLogService;
 
     @GetMapping("/types")
     ResponseEntity<List<ConnectionType>> getTypes() {
@@ -42,6 +44,8 @@ public class DataSourceController {
         Optional<ConnectionType> connectionTypeFound =
                 connectionTypeService.findById(connectionDefinition.getTypeLabel());
         if (connectionTypeFound.isEmpty()) {
+            connectionLogService.error(
+                    "Connection","Invalid connection type label [%s]", connectionDefinition.getTypeLabel());
             throw new InvalidRequestException(
                     String.format("Invalid connection type label [%s]", connectionDefinition.getTypeLabel() ));
         }
@@ -69,7 +73,7 @@ public class DataSourceController {
                         propertyValue.getPropertyId(),
                         propertyValue.getValue()))
                 .forEach(connectionPropertyValueRepository::save);
-
+        connectionLogService.info(connectionDefinition.getTypeLabel(), "Connected.");
         return ResponseEntity.status(HttpStatus.CREATED).body(savedConnectionDefinition);
     }
 
