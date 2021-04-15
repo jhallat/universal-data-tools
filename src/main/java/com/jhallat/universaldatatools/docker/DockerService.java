@@ -144,6 +144,7 @@ public class DockerService {
             }
             return dockerMapper.mapContainer(containers.get(0));
         } catch (Exception exception) {
+            log.error("Error creating container", exception);
             connectionLogService.error("Docker", exception.getMessage());
         }
         return null;

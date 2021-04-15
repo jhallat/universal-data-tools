@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,5 +42,13 @@ public class ControllerExceptionHandler {
                 .body(new ErrorResponse(EX_PREFIX_MISSING_CONNECTION, exception.getMessage()));
 
     }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(SQLException.class)
+    String handleSQLException(SQLException exception) {
+        return exception.getMessage();
+    }
+
 
 }
