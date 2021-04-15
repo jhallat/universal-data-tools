@@ -13,11 +13,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-@Component
 @RequiredArgsConstructor
 public class RelationalDBConnectionFactory implements ActiveConnectionFactory {
 
-    private ConnectionLogService connectionLogService;
+    private final ConnectionLogService connectionLogService;
 
     @Override
     public ActiveConnection createConnection(ConnectionToken connectionToken) {
@@ -26,7 +25,7 @@ public class RelationalDBConnectionFactory implements ActiveConnectionFactory {
             String url = connectionToken.getProperty(RelationalDBConfiguration.PROPERTY_URL);
             String username = connectionToken.getProperty(RelationalDBConfiguration.PROPERTY_USERNAME);
             String password = connectionToken.getProperty(RelationalDBConfiguration.PROPERTY_PASSWORD);
-            String connectionString = String.format("jdbc:postgresql://%s", url);
+            String connectionString = String.format("jdbc:postgresql://%s/", url);
             try {
                 Connection connection = DriverManager.getConnection(connectionString, username, password);
                 return new RelationalDBConnection(RelationalDBConfiguration.LABEL_POSTGRESQL, connection);

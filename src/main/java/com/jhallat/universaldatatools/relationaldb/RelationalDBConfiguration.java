@@ -3,6 +3,7 @@ package com.jhallat.universaldatatools.relationaldb;
 import com.jhallat.universaldatatools.connectiondefinitions.ConnectionTypeProvider;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.ConnectionType;
 import com.jhallat.universaldatatools.connectiondefinitions.entities.PropertyDefinition;
+import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,8 +20,8 @@ public class RelationalDBConfiguration {
     public static final int PROPERTY_PASSWORD = 3;
 
     @Bean(name="relationalDBConnectionFactory")
-    public RelationalDBConnectionFactory getRelationalDBConnectionFactory() {
-        return new RelationalDBConnectionFactory();
+    public RelationalDBConnectionFactory getRelationalDBConnectionFactory(ConnectionLogService connectionLogService) {
+        return new RelationalDBConnectionFactory(connectionLogService);
     }
 
     @Bean(name="relationalDBConnectionDefinitionProvider")
