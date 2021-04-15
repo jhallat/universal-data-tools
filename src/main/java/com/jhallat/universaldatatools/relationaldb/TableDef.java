@@ -1,3 +1,5 @@
 package com.jhallat.universaldatatools.relationaldb;
 
-public record TableDef(String name) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record TableDef(@JsonProperty("name") String name) {}

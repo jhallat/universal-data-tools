@@ -6,7 +6,7 @@ import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jvnet.hk2.annotations.Service;
+import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -66,11 +66,11 @@ public class RelationalDBService {
                     default:
                         log.warn("Unexpected type {}", tableType);
                 }
-                for (String dbName : dbNames) {
-                    databases.add(new DatabaseDef(dbName,
-                            tableMap.getOrDefault(dbName, new ArrayList<>()),
-                            viewMap.getOrDefault(dbName, new ArrayList<>())));
-                }
+            }
+            for (String dbName : dbNames) {
+                databases.add(new DatabaseDef(dbName,
+                        tableMap.getOrDefault(dbName, new ArrayList<>()),
+                        viewMap.getOrDefault(dbName, new ArrayList<>())));
             }
         }
         return Collections.unmodifiableList(databases);

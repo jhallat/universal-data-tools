@@ -5,6 +5,7 @@ import com.jhallat.universaldatatools.connectiondefinitions.entities.*;
 import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,15 +19,15 @@ import java.util.*;
 @CrossOrigin(origins = "http://localhost:4201")
 @RequestMapping("/data-sources")
 @RequiredArgsConstructor
-public class DataSourceController {
+@Slf4j
+public class ConnectionController {
 
     //TODO Simplify the logic by wrapping repositories in service classes
     private final ConnectionTypeService connectionTypeService;
     private final ConnectionRepository connectionRepository;
-    private final ConnectionPropertyValueRepository connectionPropertyValueRepository;
     private final ActiveConnectionService activeConnectionService;
     private final ConnectionTokenService connectionTokenService;
-    private final ConnectionLogService connectionLogService;
+    private final ConnectionService connectionService;
 
     @GetMapping("/types")
     ResponseEntity<List<ConnectionType>> getTypes() {
@@ -41,40 +42,7 @@ public class DataSourceController {
     @PostMapping("/connection")
     ResponseEntity<ConnectionDefinition> createConnection(
             @RequestBody @Valid ConnectionDefinition connectionDefinition) throws InvalidRequestException {
-        Optional<ConnectionType> connectionTypeFound =
-                connectionTypeService.findById(connectionDefinition.getTypeLabel());
-        if (connectionTypeFound.isEmpty()) {
-            connectionLogService.error(
-                    "Connection","Invalid connection type label [%s]", connectionDefinition.getTypeLabel());
-            throw new InvalidRequestException(
-                    String.format("Invalid connection type label [%s]", connectionDefinition.getTypeLabel() ));
-        }
-        if (StringUtils.isBlank(connectionDefinition.getDescription())) {
-            String connectionType = connectionTypeFound.get().getDescription();
-            List<ConnectionDefinition> current = connectionRepository.findByDescriptionStartingWith(connectionType);
-            boolean found = false;
-            if (!current.stream().anyMatch((item) -> item.getDescription().equalsIgnoreCase(connectionType))) {
-                found = true;
-                connectionDefinition.setDescription(connectionType);
-            }
-            int index = 1;
-            while (!found) {
-                String description = connectionType + "-" + index;
-                if (!current.stream().anyMatch((item) -> item.getDescription().equalsIgnoreCase(connectionType))) {
-                    found = true;
-                    connectionDefinition.setDescription(description);
-                }
-                index++;
-            }
-        }
-        ConnectionDefinition savedConnectionDefinition = connectionRepository.save(connectionDefinition);
-        connectionDefinition.getProperties().stream().map(propertyValue ->
-                new ConnectionPropertyValue(savedConnectionDefinition.getId(),
-                        propertyValue.getPropertyId(),
-                        propertyValue.getValue()))
-                .forEach(connectionPropertyValueRepository::save);
-        connectionLogService.info(connectionDefinition.getTypeLabel(), "Connected.");
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedConnectionDefinition);
+        return ResponseEntity.status(HttpStatus.CREATED).body(connectionService.createConnection(connectionDefinition));
     }
 
     @PutMapping("/disconnect/{token}")

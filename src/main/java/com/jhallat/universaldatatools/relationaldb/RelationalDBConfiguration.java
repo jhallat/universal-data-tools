@@ -13,7 +13,7 @@ import java.util.List;
 @Configuration
 public class RelationalDBConfiguration {
 
-    public static final String LABEL_POSTGRESQL = "POSTGRESLQ";
+    public static final String LABEL_POSTGRESQL = "POSTGRESQL";
 
     public static final int PROPERTY_URL = 1;
     public static final int PROPERTY_USERNAME = 2;

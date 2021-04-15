@@ -1,4 +1,6 @@
 package com.jhallat.universaldatatools.relationaldb;
 
-public record ViewDef(String name) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record ViewDef(@JsonProperty("name") String name) {
 }
