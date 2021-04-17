@@ -2,4 +2,8 @@ package com.jhallat.universaldatatools.relationaldb;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record TableDef(@JsonProperty("name") String name) {}
+import java.util.List;
+
+public record TableDef(@JsonProperty("name") String name,
+                       @JsonProperty("columns") List<ColumnDef> columns,
+                       @JsonProperty("rows") List<List<String>> rows) {}

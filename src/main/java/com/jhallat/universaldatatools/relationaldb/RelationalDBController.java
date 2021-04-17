@@ -4,11 +4,9 @@ import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.Table;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -29,4 +27,14 @@ public class RelationalDBController {
         return relationalDBService.getDatabases(connectionToken);
     }
 
+    @GetMapping("/database/table/{schema}/{table}")
+    public TableDef getTable(@RequestHeader("connection-token") String connectionToken,
+                             @PathVariable("schema") String schema,
+                             @PathVariable("table") String table)
+            throws InvalidRequestException, SQLException, MissingConnectionException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        return relationalDBService.getTable(connectionToken, schema, table);
+    }
 }
