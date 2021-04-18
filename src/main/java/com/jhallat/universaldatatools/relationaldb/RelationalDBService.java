@@ -9,10 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +31,15 @@ public class RelationalDBService {
         throw new MissingConnectionException();
     }
 
+    private ConnectionDef findConnection(String connectionToken, String dbName) throws MissingConnectionException, SQLException {
+        ActiveConnection activeConnection = activeConnectionService.getConnection(connectionToken);
+        if (activeConnection instanceof RelationalDBConnection connection) {
+            return new ConnectionDef(connection.getLabel(), connection.getConnection(dbName));
+        }
+        log.warn("Expected Relational DB connection, found {} for token {}", activeConnection.getLabel(), connectionToken);
+        throw new MissingConnectionException();
+    }
+
     private String createDataSQL(String schema, String table, List<ColumnDef> columns) {
        String selections = columns.stream().map(ColumnDef::name).collect(Collectors.joining(","));
        String sql = String.format("SELECT %s FROM %s.%s", selections, schema, table);
@@ -48,35 +54,45 @@ public class RelationalDBService {
         Set<String> dbNames = new HashSet<>();
         Map<String, List<TableDescription>> tableMap = new HashMap<>();
         Map<String, List<ViewDescription>> viewMap = new HashMap<>();
-        String dbsql = """
-                    SELECT table_catalog, table_type, table_name, table_schema FROM pg_database db
-                    INNER JOIN information_schema.tables tbl
-                       on tbl.table_catalog = db.datname
-                    WHERE db.datistemplate = false
-                    """;
+        String dbSql = "SELECT datname from pg_database WHERE datistemplate = false";
+        String tableSql = """
+            SELECT table_type, table_name, table_schema 
+            FROM information_schema.tables
+            WHERE table_catalog = 'postgres' 
+               OR (table_schema <> 'information_schema' AND table_schema <> 'pg_catalog')
+            ORDER BY table_name   
+            """;
         ConnectionDef connectionDef = findConnection(connectionToken);
-        Connection connection = connectionDef.connection();
-        try (ResultSet results = connection.prepareStatement(dbsql).executeQuery()) {
+
+        try (Connection connection = connectionDef.connection();
+              ResultSet results = connection.prepareStatement(dbSql).executeQuery()) {
             while (results.next()) {
-                String database = results.getString("table_catalog");
-                String tableType = results.getString("table_type");
-                String tableName = results.getString("table_name");
-                String tableSchema = results.getString("table_schema");
-                dbNames.add(database);
-                switch (tableType) {
-                    case "BASE TABLE" -> {
-                        if (!tableMap.containsKey(database)) {
-                            tableMap.put(database, new ArrayList<>());
+                String database = results.getString("datname");
+                try (Connection tableConnection = findConnection(connectionToken, database).connection();
+                     ResultSet tableResults = tableConnection.prepareStatement(tableSql).executeQuery()) {
+                    while (tableResults.next()) {
+                        String tableType = tableResults.getString("table_type");
+                        String tableName = tableResults.getString("table_name");
+                        String tableSchema = tableResults.getString("table_schema");
+                        dbNames.add(database);
+                        if (tableType != null) {
+                            switch (tableType) {
+                                case "BASE TABLE" -> {
+                                    if (!tableMap.containsKey(database)) {
+                                        tableMap.put(database, new ArrayList<>());
+                                    }
+                                    tableMap.get(database).add(new TableDescription(tableName, tableSchema));
+                                }
+                                case "VIEW" -> {
+                                    if (!viewMap.containsKey(database)) {
+                                        viewMap.put(database, new ArrayList<>());
+                                    }
+                                    viewMap.get(database).add(new ViewDescription(tableName, tableSchema));
+                                }
+                                default -> log.warn("Unexpected type {}", tableType);
+                            }
                         }
-                        tableMap.get(database).add(new TableDescription(tableName, tableSchema));
                     }
-                    case "VIEW" -> {
-                        if (!viewMap.containsKey(database)) {
-                            viewMap.put(database, new ArrayList<>());
-                        }
-                        viewMap.get(database).add(new ViewDescription(tableName, tableSchema));
-                    }
-                    default -> log.warn("Unexpected type {}", tableType);
                 }
             }
             for (String dbName : dbNames) {
@@ -88,11 +104,11 @@ public class RelationalDBService {
         return Collections.unmodifiableList(databases);
     }
 
-    public TableDef getTable(String connectionToken, String schema, String table) throws SQLException, MissingConnectionException {
+    public TableDef getTable(String connectionToken, String database, String schema, String table) throws SQLException, MissingConnectionException {
 
         List<ColumnDef> columns = new ArrayList<>();
         List<List<String>> rows = new ArrayList<>();
-        String tablesql = """
+        String tableSql = """
                 SELECT column_name,
                        column_default,
                        is_nullable,
@@ -106,13 +122,28 @@ public class RelationalDBService {
                   AND table_name = ?
                 ORDER BY ordinal_position         
                 """;
-        ConnectionDef connectionDef = findConnection(connectionToken);
+        String keySql = String.format("""
+                SELECT a.attname
+                FROM   pg_index i
+                JOIN   pg_attribute a ON a.attrelid = i.indrelid
+                                     AND a.attnum = ANY(i.indkey)
+                WHERE  i.indrelid = '%s'::regclass
+                AND    i.indisprimary
+                """, table);
+        ConnectionDef connectionDef = findConnection(connectionToken, database);
         Connection connection = connectionDef.connection();
-        try (PreparedStatement statement = connection.prepareStatement(tablesql)) {
-            statement.clearParameters();
-            statement.setString(1, schema);
-            statement.setString(2, table);
-            try (ResultSet results = statement.executeQuery()) {
+        String primaryKey = "";
+        try (PreparedStatement tableStatement = connection.prepareStatement(tableSql);
+             PreparedStatement keyStatement = connection.prepareStatement(keySql)) {
+            try (ResultSet results = keyStatement.executeQuery()) {
+                if (results.next()) {
+                    primaryKey = results.getString("attname");
+                }
+            }
+            tableStatement.clearParameters();
+            tableStatement.setString(1, schema);
+            tableStatement.setString(2, table);
+            try (ResultSet results = tableStatement.executeQuery()) {
                 while (results.next()) {
                     columns.add(new ColumnDef(
                             results.getString("column_name"),
@@ -136,6 +167,65 @@ public class RelationalDBService {
                 rows.add(values);
             }
         }
-        return new TableDef(table, columns, rows);
+        return new TableDef(table, columns, primaryKey, rows);
+    }
+
+    public DatabaseDef createDatabase(String connectionToken, CreateDatabaseDef databaseDef)
+            throws SQLException, MissingConnectionException {
+        String createSQL = String.format("CREATE DATABASE %s", databaseDef.name());
+        ConnectionDef connectionDef = findConnection(connectionToken);
+        Connection connection = connectionDef.connection();
+        try (Statement statement = connection.createStatement()) {
+            if (statement.execute(createSQL)) {
+                return new DatabaseDef(databaseDef.name(), new ArrayList<>(), new ArrayList<>());
+            }
+        }
+        return null;
+    }
+
+    private String createColumn(CreateColumnDef createColumnDef) {
+
+        StringBuilder columnBuilder = new StringBuilder(createColumnDef.name());
+        columnBuilder.append(" ");
+        columnBuilder.append(createColumnDef.dataType());
+        if (createColumnDef.size() > 0) {
+            columnBuilder.append(String.format(" (%s) ", createColumnDef.size()));
+        }
+        if (createColumnDef.primaryKey()) {
+            columnBuilder.append(" PRIMARY KEY ");
+        } else {
+            if (createColumnDef.unique()) {
+                columnBuilder.append(" UNIQUE ");
+            }
+            if (createColumnDef.notNull()) {
+                columnBuilder.append(" NOT NULL ");
+            }
+        }
+        return columnBuilder.toString();
+    }
+
+    public TableDef createTable(String connectionToken, CreateTableDef createTableDef)
+            throws SQLException, MissingConnectionException {
+
+        String columns = createTableDef.columns().stream()
+                .map(col -> createColumn(col))
+                .collect(Collectors.joining(","));
+        String tableName = createTableDef.name();
+        if (!StringUtils.isBlank(createTableDef.schema())) {
+            tableName = String.format("%s.%s", createTableDef.schema(),tableName);
+        }
+        String createSql = String.format("CREATE TABLE %s (%s)", tableName, columns);
+        ConnectionDef connectionDef = findConnection(connectionToken, createTableDef.database());
+        Connection connection = connectionDef.connection();
+        try (Statement statement = connection.createStatement()) {
+            if (statement.execute(createSql)) {
+                log.info("Table {} created.", tableName);
+                return getTable(connectionToken,
+                        createTableDef.database(),
+                        createTableDef.schema(),
+                        createTableDef.name());
+            }
+        }
+        return null;
     }
 }

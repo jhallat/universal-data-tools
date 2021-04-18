@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import javax.persistence.Table;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -27,14 +26,35 @@ public class RelationalDBController {
         return relationalDBService.getDatabases(connectionToken);
     }
 
-    @GetMapping("/database/table/{schema}/{table}")
+    @GetMapping("/database/table/{database}/{schema}/{table}")
     public TableDef getTable(@RequestHeader("connection-token") String connectionToken,
+                             @PathVariable("database") String database,
                              @PathVariable("schema") String schema,
                              @PathVariable("table") String table)
             throws InvalidRequestException, SQLException, MissingConnectionException {
         if (connectionToken == null) {
             throw new InvalidRequestException("Missing connection token");
         }
-        return relationalDBService.getTable(connectionToken, schema, table);
+        return relationalDBService.getTable(connectionToken, database, schema, table);
+    }
+
+    @PostMapping("/database")
+    public DatabaseDef createDatabase(@RequestHeader("connection-token") String connectionToken,
+                                   @RequestBody CreateDatabaseDef createDatabaseDef)
+            throws InvalidRequestException, SQLException, MissingConnectionException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        return relationalDBService.createDatabase(connectionToken, createDatabaseDef);
+    }
+
+    @PostMapping("/database/table")
+    public TableDef createTable(@RequestHeader("connection-token") String connectionToken,
+                                @RequestBody CreateTableDef createTableDef)
+            throws InvalidRequestException, SQLException, MissingConnectionException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        return relationalDBService.createTable(connectionToken, createTableDef);
     }
 }
