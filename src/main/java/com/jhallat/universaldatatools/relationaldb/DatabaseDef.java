@@ -6,4 +6,4 @@ import java.util.List;
 
 public record DatabaseDef(@JsonProperty("name") String name,
                           @JsonProperty("tables") List<TableDescription> tables,
-                          @JsonProperty("views") List<String> views) {}
+                          @JsonProperty("views") List<ViewDescription> views) {}

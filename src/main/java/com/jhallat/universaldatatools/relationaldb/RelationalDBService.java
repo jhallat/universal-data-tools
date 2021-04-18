@@ -47,7 +47,7 @@ public class RelationalDBService {
         List<DatabaseDef> databases = new ArrayList<>();
         Set<String> dbNames = new HashSet<>();
         Map<String, List<TableDescription>> tableMap = new HashMap<>();
-        Map<String, List<String>> viewMap = new HashMap<>();
+        Map<String, List<ViewDescription>> viewMap = new HashMap<>();
         String dbsql = """
                     SELECT table_catalog, table_type, table_name, table_schema FROM pg_database db
                     INNER JOIN information_schema.tables tbl
@@ -74,7 +74,7 @@ public class RelationalDBService {
                         if (!viewMap.containsKey(database)) {
                             viewMap.put(database, new ArrayList<>());
                         }
-                        viewMap.get(database).add(tableName);
+                        viewMap.get(database).add(new ViewDescription(tableName, tableSchema));
                     }
                     default -> log.warn("Unexpected type {}", tableType);
                 }
