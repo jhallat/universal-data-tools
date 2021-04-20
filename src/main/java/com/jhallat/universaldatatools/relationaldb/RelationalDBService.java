@@ -167,7 +167,7 @@ public class RelationalDBService {
                 rows.add(values);
             }
         }
-        return new TableDef(table, columns, primaryKey, rows);
+        return new TableDef(table, schema, columns, primaryKey, rows);
     }
 
     public DatabaseDef createDatabase(String connectionToken, CreateDatabaseDef databaseDef)
