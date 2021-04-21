@@ -16,6 +16,7 @@ import java.util.List;
 public class RelationalDBController {
 
     private final RelationalDBService relationalDBService;
+    private final DataTypeService dataTypeService;
 
     @GetMapping("/databases")
     public List<DatabaseDef> getDatabases(@RequestHeader("connection-token") String connectionToken)
@@ -56,5 +57,11 @@ public class RelationalDBController {
             throw new InvalidRequestException("Missing connection token");
         }
         return relationalDBService.createTable(connectionToken, createTableDef);
+    }
+
+    // TODO the connection token will be used in the future when supporting multiple database types
+    @GetMapping("/database/types")
+    public List<DataTypeDef> getDatabaseTypes(@RequestHeader("connection-token") String connectionToken) {
+        return dataTypeService.getDataTypes();
     }
 }

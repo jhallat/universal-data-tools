@@ -215,6 +215,8 @@ public class RelationalDBService {
             tableName = String.format("%s.%s", createTableDef.schema(),tableName);
         }
         String createSql = String.format("CREATE TABLE %s (%s)", tableName, columns);
+        //TODO change to debug
+        log.info(createSql);
         ConnectionDef connectionDef = findConnection(connectionToken, createTableDef.database());
         Connection connection = connectionDef.connection();
         try (Statement statement = connection.createStatement()) {
