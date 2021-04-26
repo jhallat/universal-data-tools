@@ -1,5 +1,7 @@
 package com.jhallat.universaldatatools.docker;
 
+import com.github.dockerjava.api.model.Image;
+import com.jhallat.universaldatatools.exceptions.InternalSystemException;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +74,15 @@ public class DockerController {
         log.info("{} items found.", searchItemDTOS.size());
         return searchItemDTOS;
 
+    }
+
+    @GetMapping("/images/pulled")
+    public List<ImageDTO> getImages(@RequestHeader("connection-token") String connectionToken)
+            throws InvalidRequestException, MissingConnectionException, InternalSystemException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        return dockerService.getImages(connectionToken);
     }
 
     @PostMapping("/container/create")

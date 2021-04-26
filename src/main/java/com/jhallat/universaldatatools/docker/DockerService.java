@@ -1,10 +1,12 @@
 package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.model.*;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
+import com.jhallat.universaldatatools.exceptions.InternalSystemException;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +15,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.apache.logging.log4j.util.Strings.isBlank;
@@ -155,7 +159,24 @@ public class DockerService {
         try {
             client.removeContainerCmd(containerId).exec();
         } catch (Exception exception) {
+            log.error("Error deleting container", exception);
             connectionLogService.error("Docker", exception.getMessage());
         }
     }
+
+    public List<ImageDTO> getImages(String connectionToken) throws MissingConnectionException, InternalSystemException {
+        DockerClient client = findDockerClient(connectionToken);
+        try {
+            List<Image> images = client.listImagesCmd().exec();
+            return images.stream().map(image -> new ImageDTO(image.getId(),
+                    Arrays.stream(image.getRepoTags()).collect(Collectors.joining(","))))
+                    .toList();
+        } catch (Exception exception) {
+            log.error("Error getting image list", exception);
+            connectionLogService.error("Docker", exception.getMessage());
+            throw new InternalSystemException(exception);
+        }
+    }
+
+
 }

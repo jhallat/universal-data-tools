@@ -53,5 +53,13 @@ public class ControllerExceptionHandler {
         return exception.getMessage();
     }
 
+    @ResponseBody
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(InternalSystemException.class)
+    String handleSQLException(InternalSystemException exception) {
+        log.error("System Exception", exception);
+        return exception.getMessage();
+    }
+
 
 }
