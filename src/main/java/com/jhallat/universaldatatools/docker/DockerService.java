@@ -9,10 +9,14 @@ import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.InternalSystemException;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
+import com.jhallat.universaldatatools.status.StatusMessageController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +35,7 @@ public class DockerService {
     private final ActiveConnectionService activeConnectionService;
     private final DockerMapper dockerMapper;
     private final ConnectionLogService connectionLogService;
+    private final StatusMessageController statusMessageController;
 
     private DockerClient findDockerClient(String connectionToken) throws MissingConnectionException {
         ActiveConnection activeConnection = activeConnectionService.getConnection(connectionToken);
@@ -118,9 +123,9 @@ public class DockerService {
         }
         var hostConfig = HostConfig.newHostConfig();
         var portBindings = definition.getPublishedPorts().stream()
-            .filter(port -> !StringUtils.isBlank(port.getMapping()))
-            .map(port -> PortBinding.parse(port.getMapping()))
-            .collect(Collectors.toList());
+                .filter(port -> !StringUtils.isBlank(port.getMapping()))
+                .map(port -> PortBinding.parse(port.getMapping()))
+                .collect(Collectors.toList());
         if (!portBindings.isEmpty()) {
             hostConfig.withPortBindings(portBindings);
         }
@@ -178,5 +183,36 @@ public class DockerService {
         }
     }
 
+    public void pullImage(String connectionToken, String imageTag) throws MissingConnectionException {
+        DockerClient client = findDockerClient(connectionToken);
+
+        client.pullImageCmd(imageTag).exec(new PullImageResultCallback() {
+            @Override
+            public void onNext(PullResponseItem item) {
+                super.onNext(item);
+                if (item.isPullSuccessIndicated()) {
+                    log.info(String.format("%s successfully pulled", imageTag));
+                    connectionLogService.info("%s successfully pulled", imageTag);
+                    statusMessageController.sendMessage("Docker", String.format("%s successfully pulled", imageTag));
+                }
+                if (item.isErrorIndicated()) {
+                    log.error(String.format("Error occurred pulling %s", imageTag));
+                    connectionLogService.info("Error occurred pulling %s", imageTag);
+                    statusMessageController.sendMessage("Docker", String.format("Error occurred pulling %s", imageTag));
+                }
+            }
+        });
+    }
+
+    public List<String> getTags(String image) {
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            String dockerTagUrl = String.format("https://registry.hub.docker.com/v1/repositories/%s/tags", image);
+            ResponseEntity<Tag[]> response = restTemplate.getForEntity(dockerTagUrl, Tag[].class);
+            return Arrays.asList(response.getBody()).stream().map(tag -> tag.name()).toList();
+        } catch(HttpClientErrorException exception) {
+            return Collections.emptyList();
+        }
+    }
 
 }

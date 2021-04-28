@@ -99,4 +99,20 @@ public class DockerController {
         dockerService.deleteContainer(connectionToken, containerId);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/image/pull/{imageTag}")
+    public ResponseEntity<Void> pullImage(@RequestHeader("connection-token") String connectionToken,
+                                          @PathVariable("imageTag") String imageTag) throws MissingConnectionException {
+        dockerService.pullImage(connectionToken, imageTag);
+        return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("/image/{image}/tags")
+    public ResponseEntity<List<String>> getTags(@PathVariable("image") String image) {
+        List<String> tags = dockerService.getTags(image);
+        if (tags.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(tags);
+    }
 }
