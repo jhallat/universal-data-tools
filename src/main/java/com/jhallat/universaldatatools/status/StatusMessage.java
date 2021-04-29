@@ -1,3 +1,5 @@
 package com.jhallat.universaldatatools.status;
 
-public record StatusMessage(String subject, String message) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record StatusMessage(@JsonProperty("subject") String subject, @JsonProperty("message") String message) {}

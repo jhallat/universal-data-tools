@@ -1,14 +1,22 @@
 package com.jhallat.universaldatatools.status;
 
-import org.springframework.messaging.handler.annotation.SendTo;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+@Slf4j
 @Controller
 public class StatusMessageController {
 
-    @SendTo("/topic/status")
-    public StatusMessage sendMessage(String subject, String message) {
-        return new StatusMessage(subject, message);
+    @Autowired
+    private SimpMessagingTemplate simpleMessagingTemplate;
+
+    public void sendMessage(String subject, String message) {
+
+        log.info("{}:{}", subject, message);
+        simpleMessagingTemplate.convertAndSend("/topic/status", new StatusMessage(subject, message));
+
     }
 
 }

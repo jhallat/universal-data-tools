@@ -183,9 +183,10 @@ public class DockerService {
         }
     }
 
-    public void pullImage(String connectionToken, String imageTag) throws MissingConnectionException {
+    public void pullImage(String connectionToken, String image, String tag) throws MissingConnectionException {
         DockerClient client = findDockerClient(connectionToken);
 
+        String imageTag = String.format("%s:%s", image, tag);
         client.pullImageCmd(imageTag).exec(new PullImageResultCallback() {
             @Override
             public void onNext(PullResponseItem item) {

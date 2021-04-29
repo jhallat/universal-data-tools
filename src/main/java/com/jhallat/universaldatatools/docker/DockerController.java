@@ -100,10 +100,11 @@ public class DockerController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/image/pull/{imageTag}")
+    @PutMapping("/image/pull/{image}/{tag}")
     public ResponseEntity<Void> pullImage(@RequestHeader("connection-token") String connectionToken,
-                                          @PathVariable("imageTag") String imageTag) throws MissingConnectionException {
-        dockerService.pullImage(connectionToken, imageTag);
+                                          @PathVariable("image") String image,
+                                          @PathVariable("tag") String tag) throws MissingConnectionException {
+        dockerService.pullImage(connectionToken, image, tag);
         return ResponseEntity.accepted().build();
     }
 
