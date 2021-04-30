@@ -1,5 +1,7 @@
 package com.jhallat.universaldatatools.docker;
 
+import com.github.dockerjava.api.model.Image;
+import com.jhallat.universaldatatools.exceptions.InternalSystemException;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +76,15 @@ public class DockerController {
 
     }
 
+    @GetMapping("/images/pulled")
+    public List<ImageDTO> getImages(@RequestHeader("connection-token") String connectionToken)
+            throws InvalidRequestException, MissingConnectionException, InternalSystemException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        return dockerService.getImages(connectionToken);
+    }
+
     @PostMapping("/container/create")
     public ContainerDTO createContainer(@RequestHeader("connection-token") String connectionToken,
                                         @RequestBody @Valid ContainerCreationDefinition definition)
@@ -87,5 +98,22 @@ public class DockerController {
             throws MissingConnectionException {
         dockerService.deleteContainer(connectionToken, containerId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/image/pull/{image}/{tag}")
+    public ResponseEntity<Void> pullImage(@RequestHeader("connection-token") String connectionToken,
+                                          @PathVariable("image") String image,
+                                          @PathVariable("tag") String tag) throws MissingConnectionException {
+        dockerService.pullImage(connectionToken, image, tag);
+        return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("/image/{image}/tags")
+    public ResponseEntity<List<String>> getTags(@PathVariable("image") String image) {
+        List<String> tags = dockerService.getTags(image);
+        if (tags.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(tags);
     }
 }

@@ -1,20 +1,25 @@
 package com.jhallat.universaldatatools.docker;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.model.*;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
+import com.jhallat.universaldatatools.exceptions.InternalSystemException;
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
+import com.jhallat.universaldatatools.status.StatusMessageController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.apache.logging.log4j.util.Strings.isBlank;
@@ -27,6 +32,7 @@ public class DockerService {
     private final ActiveConnectionService activeConnectionService;
     private final DockerMapper dockerMapper;
     private final ConnectionLogService connectionLogService;
+    private final StatusMessageController statusMessageController;
 
     private DockerClient findDockerClient(String connectionToken) throws MissingConnectionException {
         ActiveConnection activeConnection = activeConnectionService.getConnection(connectionToken);
@@ -114,9 +120,9 @@ public class DockerService {
         }
         var hostConfig = HostConfig.newHostConfig();
         var portBindings = definition.getPublishedPorts().stream()
-            .filter(port -> !StringUtils.isBlank(port.getMapping()))
-            .map(port -> PortBinding.parse(port.getMapping()))
-            .collect(Collectors.toList());
+                .filter(port -> !StringUtils.isBlank(port.getMapping()))
+                .map(port -> PortBinding.parse(port.getMapping()))
+                .collect(Collectors.toList());
         if (!portBindings.isEmpty()) {
             hostConfig.withPortBindings(portBindings);
         }
@@ -138,11 +144,13 @@ public class DockerService {
         try {
             var response = command.exec();
             List<Container> containers =
-                    client.listContainersCmd().withIdFilter(Collections.singletonList(response.getId())).exec();
-            if (containers.isEmpty()) {
+                        client.listContainersCmd().withShowAll(true).exec();
+            Optional<Container> container =
+                        containers.stream().filter(item -> item.getId().equalsIgnoreCase(response.getId())).findFirst();
+            if (container.isEmpty()) {
                 throw new InvalidRequestException(String.format("Container %s was not found", response.getId()));
             }
-            return dockerMapper.mapContainer(containers.get(0));
+            return dockerMapper.mapContainer(container.get());
         } catch (Exception exception) {
             log.error("Error creating container", exception);
             connectionLogService.error("Docker", exception.getMessage());
@@ -155,7 +163,56 @@ public class DockerService {
         try {
             client.removeContainerCmd(containerId).exec();
         } catch (Exception exception) {
+            log.error("Error deleting container", exception);
             connectionLogService.error("Docker", exception.getMessage());
         }
     }
+
+    public List<ImageDTO> getImages(String connectionToken) throws MissingConnectionException, InternalSystemException {
+        DockerClient client = findDockerClient(connectionToken);
+        try {
+            List<Image> images = client.listImagesCmd().exec();
+            return images.stream().map(image -> new ImageDTO(image.getId(),
+                    Arrays.stream(image.getRepoTags()).collect(Collectors.joining(","))))
+                    .toList();
+        } catch (Exception exception) {
+            log.error("Error getting image list", exception);
+            connectionLogService.error("Docker", exception.getMessage());
+            throw new InternalSystemException(exception);
+        }
+    }
+
+    public void pullImage(String connectionToken, String image, String tag) throws MissingConnectionException {
+        DockerClient client = findDockerClient(connectionToken);
+
+        String imageTag = String.format("%s:%s", image, tag);
+        client.pullImageCmd(imageTag).exec(new PullImageResultCallback() {
+            @Override
+            public void onNext(PullResponseItem item) {
+                super.onNext(item);
+                if (item.isPullSuccessIndicated()) {
+                    log.info(String.format("%s successfully pulled", imageTag));
+                    connectionLogService.info("%s successfully pulled", imageTag);
+                    statusMessageController.sendMessage("Docker", String.format("%s successfully pulled", imageTag));
+                }
+                if (item.isErrorIndicated()) {
+                    log.error(String.format("Error occurred pulling %s", imageTag));
+                    connectionLogService.info("Error occurred pulling %s", imageTag);
+                    statusMessageController.sendMessage("Docker", String.format("Error occurred pulling %s", imageTag));
+                }
+            }
+        });
+    }
+
+    public List<String> getTags(String image) {
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            String dockerTagUrl = String.format("https://registry.hub.docker.com/v1/repositories/%s/tags", image);
+            ResponseEntity<Tag[]> response = restTemplate.getForEntity(dockerTagUrl, Tag[].class);
+            return Arrays.asList(response.getBody()).stream().map(tag -> tag.name()).toList();
+        } catch(HttpClientErrorException exception) {
+            return Collections.emptyList();
+        }
+    }
+
 }
