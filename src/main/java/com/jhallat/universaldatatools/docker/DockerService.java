@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -147,11 +144,13 @@ public class DockerService {
         try {
             var response = command.exec();
             List<Container> containers =
-                    client.listContainersCmd().withIdFilter(Collections.singletonList(response.getId())).exec();
-            if (containers.isEmpty()) {
+                        client.listContainersCmd().withShowAll(true).exec();
+            Optional<Container> container =
+                        containers.stream().filter(item -> item.getId().equalsIgnoreCase(response.getId())).findFirst();
+            if (container.isEmpty()) {
                 throw new InvalidRequestException(String.format("Container %s was not found", response.getId()));
             }
-            return dockerMapper.mapContainer(containers.get(0));
+            return dockerMapper.mapContainer(container.get());
         } catch (Exception exception) {
             log.error("Error creating container", exception);
             connectionLogService.error("Docker", exception.getMessage());
