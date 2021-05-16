@@ -68,13 +68,13 @@ public class RelationalDBService {
               ResultSet results = connection.prepareStatement(dbSql).executeQuery()) {
             while (results.next()) {
                 String database = results.getString("datname");
+                dbNames.add(database);
                 try (Connection tableConnection = findConnection(connectionToken, database).connection();
                      ResultSet tableResults = tableConnection.prepareStatement(tableSql).executeQuery()) {
                     while (tableResults.next()) {
                         String tableType = tableResults.getString("table_type");
                         String tableName = tableResults.getString("table_name");
                         String tableSchema = tableResults.getString("table_schema");
-                        dbNames.add(database);
                         if (tableType != null) {
                             switch (tableType) {
                                 case "BASE TABLE" -> {
@@ -95,7 +95,8 @@ public class RelationalDBService {
                     }
                 }
             }
-            for (String dbName : dbNames) {
+            List<String> sortedNames = dbNames.stream().sorted().toList();
+            for (String dbName : sortedNames) {
                 databases.add(new DatabaseDef(dbName,
                         tableMap.getOrDefault(dbName, new ArrayList<>()),
                         viewMap.getOrDefault(dbName, new ArrayList<>())));
@@ -173,6 +174,8 @@ public class RelationalDBService {
     public DatabaseDef createDatabase(String connectionToken, CreateDatabaseDef databaseDef)
             throws SQLException, MissingConnectionException {
         String createSQL = String.format("CREATE DATABASE %s", databaseDef.name());
+        //TODO Convert to debug
+        log.info(createSQL);
         ConnectionDef connectionDef = findConnection(connectionToken);
         Connection connection = connectionDef.connection();
         try (Statement statement = connection.createStatement()) {

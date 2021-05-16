@@ -24,7 +24,9 @@ public class RelationalDBController {
         if (connectionToken == null) {
             throw new InvalidRequestException("Missing connection token");
         }
-        return relationalDBService.getDatabases(connectionToken);
+        var databases = relationalDBService.getDatabases(connectionToken);
+        databases.forEach(database -> log.info("Returning database: {}", database.name()));
+        return databases;
     }
 
     @GetMapping("/database/table/{database}/{schema}/{table}")
