@@ -1,4 +1,4 @@
-package com.jhallat.universaldatatools.relationaldb;
+package com.jhallat.universaldatatools.relationaldb.definition;
 
 import java.sql.Connection;
 

@@ -1,5 +1,6 @@
 package com.jhallat.universaldatatools.relationaldb;
 
+import com.jhallat.universaldatatools.relationaldb.definition.DataTypeDef;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

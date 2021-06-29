@@ -2,8 +2,10 @@ package com.jhallat.universaldatatools.relationaldb;
 
 import com.jhallat.universaldatatools.exceptions.InvalidRequestException;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
+import com.jhallat.universaldatatools.relationaldb.definition.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -39,6 +41,20 @@ public class RelationalDBController {
             throw new InvalidRequestException("Missing connection token");
         }
         return relationalDBService.getTable(connectionToken, database, schema, table);
+    }
+
+    @DeleteMapping("/database/{database}/table/{table}")
+    public ResponseEntity<Void> deleteTable(@RequestHeader("connection-token") String connectionToken,
+                     @PathVariable("database") String database,
+                     @PathVariable("table") String table)
+            throws InvalidRequestException, SQLException, MissingConnectionException {
+        if (connectionToken == null) {
+            throw new InvalidRequestException("Missing connection token");
+        }
+        if (relationalDBService.deleteTable(connectionToken, database, table)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/database")

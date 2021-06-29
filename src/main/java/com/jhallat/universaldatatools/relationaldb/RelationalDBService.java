@@ -4,6 +4,7 @@ import com.jhallat.universaldatatools.activeconnection.ActiveConnection;
 import com.jhallat.universaldatatools.activeconnection.ActiveConnectionService;
 import com.jhallat.universaldatatools.connectionlog.ConnectionLogService;
 import com.jhallat.universaldatatools.exceptions.MissingConnectionException;
+import com.jhallat.universaldatatools.relationaldb.definition.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -168,7 +169,7 @@ public class RelationalDBService {
                 rows.add(values);
             }
         }
-        return new TableDef(table, schema, columns, primaryKey, rows);
+        return new TableDef(table, schema, database, columns, primaryKey, rows);
     }
 
     public DatabaseDef createDatabase(String connectionToken, CreateDatabaseDef databaseDef)
@@ -232,5 +233,14 @@ public class RelationalDBService {
             }
         }
         return null;
+    }
+
+    public boolean deleteTable(String connectionToken, String databaseName, String tableName) throws SQLException, MissingConnectionException {
+        String dropSql = String.format("DROP TABLE %s", tableName);
+        ConnectionDef connectionDef = findConnection(connectionToken, databaseName);
+        Connection connection = connectionDef.connection();
+        try (Statement statement = connection.createStatement()) {
+            return statement.executeUpdate(dropSql) > 0;
+        }
     }
 }
