@@ -132,10 +132,10 @@ public class RelationalDBService {
                 WHERE  i.indrelid = '%s'::regclass
                 AND    i.indisprimary
                 """, table);
-        ConnectionDef connectionDef = findConnection(connectionToken, database);
-        Connection connection = connectionDef.connection();
         String primaryKey = "";
-        try (PreparedStatement tableStatement = connection.prepareStatement(tableSql);
+        ConnectionDef connectionDef = findConnection(connectionToken, database);
+        try (Connection connection = connectionDef.connection();
+             PreparedStatement tableStatement = connection.prepareStatement(tableSql);
              PreparedStatement keyStatement = connection.prepareStatement(keySql)) {
             try (ResultSet results = keyStatement.executeQuery()) {
                 if (results.next()) {
@@ -158,15 +158,15 @@ public class RelationalDBService {
                             StringUtils.equalsIgnoreCase(results.getString("is_updatable"), "YES")));
                 }
             }
-        }
-        String dataSql = createDataSQL(schema, table, columns);
-        try (ResultSet results = connection.prepareStatement(dataSql).executeQuery()) {
-            while (results.next()) {
-                List<String> values = new ArrayList<>();
-                for (ColumnDef column : columns) {
-                    values.add(results.getString(column.name()));
+            String dataSql = createDataSQL(schema, table, columns);
+            try (ResultSet results = connection.prepareStatement(dataSql).executeQuery()) {
+                while (results.next()) {
+                    List<String> values = new ArrayList<>();
+                    for (ColumnDef column : columns) {
+                        values.add(results.getString(column.name()));
+                    }
+                    rows.add(values);
                 }
-                rows.add(values);
             }
         }
         return new TableDef(table, schema, database, columns, primaryKey, rows);
